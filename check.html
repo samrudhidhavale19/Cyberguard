@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberGuard | Scam Checker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <i class="fa-solid fa-shield-halved"></i> CYBER<span>GUARD</span>
+    </div>
+
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="check.html" class="active">Check Tool</a>
+        <a href="report.html">Report</a>
+        <a href="tips.html">Tips</a>
+        <a href="about.html">About</a>
+    </nav>
+</header>
+
+<main class="container" style="padding-top: 40px;">
+    <section style="text-align: center; margin-bottom: 40px;">
+        <h2 style="font-size: 1.5rem; margin-bottom: 8px;">Instant Scam Text Analyzer</h2>
+        <p style="font-size: 0.95rem; color: #bbb;">Check any suspicious message for phishing and fraud patterns.</p>
+    </section>
+
+    <section id="scanner" class="card" style="max-width: 700px; margin: 0 auto;">
+        <h3 style="font-size: 1.2rem; margin-bottom: 15px;">Paste Message to Check</h3>
+        <textarea id="message" placeholder="Paste suspicious SMS, email, or chat text here..." style="font-size: 0.95rem;"></textarea>
+        <button id="analyzeButton" class="btn-main" style="width: auto; margin-top: 12px; font-size: 0.95rem;" onclick="checkScam()">
+            <i class="fa-solid fa-magnifying-glass"></i> Analyze
+        </button>
+        <div id="result" class="result-box" style="display: none; font-size: 0.95rem; margin-top: 15px;"></div>
+    </section>
+
+    <section class="features" style="margin-top: 35px;">
+        <h3 style="font-size: 1.2rem; text-align: center; margin-bottom: 20px;">Built-in Scam Rules</h3>
+        <div class="grid">
+            <div class="card-tip">
+                <div class="icon-tip"><i class="fa-solid fa-envelope-open-text"></i></div>
+                <h4 style="font-size: 1rem; margin-bottom: 10px;">Urgent Requests</h4>
+                <p style="font-size: 0.9rem;">Messages that pressure you to act urgently without verification are often phishing attempts.</p>
+            </div>
+            <div class="card-tip">
+                <div class="icon-tip"><i class="fa-solid fa-key"></i></div>
+                <h4 style="font-size: 1rem; margin-bottom: 10px;">Account Access Claims</h4>
+                <p style="font-size: 0.9rem;">If someone asks for credentials, passwords, or OTP codes, treat it as scam content.</p>
+            </div>
+            <div class="card-tip">
+                <div class="icon-tip"><i class="fa-solid fa-credit-card"></i></div>
+                <h4 style="font-size: 1rem; margin-bottom: 10px;">Financial Incentives</h4>
+                <p style="font-size: 0.9rem;">Unexpected offers of money, prizes, or refunds should be verified independently.</p>
+            </div>
+            <div class="card-tip">
+                <div class="icon-tip"><i class="fa-solid fa-user-secret"></i></div>
+                <h4 style="font-size: 1rem; margin-bottom: 10px;">Suspicious Links</h4>
+                <p style="font-size: 0.9rem;">Check URLs carefully. Shortened or obfuscated links are common tools for redirecting victims.</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div class="container">
+        <p style="font-size: 0.85rem;">&copy; 2026 CyberGuard. All rights reserved. | <a href="#">Privacy</a> | <a href="#">Terms</a></p>
+    </div>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
