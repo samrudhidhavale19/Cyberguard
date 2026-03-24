@@ -2,17 +2,44 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Report Scam</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberGuard | Report Scam</title>
 <link rel="stylesheet" href="style.css">
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 30px;
+}
+
+input, textarea {
+    width: 300px;
+    padding: 10px;
+    margin: 8px;
+}
+
+button {
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+#feedback {
+    margin-top: 15px;
+    font-weight: bold;
+}
+</style>
 </head>
 
 <body>
 
-<h2>Report a Scam</h2>
+<h2>🚨 Report a Scam</h2>
+<p>Help us improve CyberGuard by reporting suspicious messages.</p>
 
-<input id="name" placeholder="Your Name"><br><br>
-<input id="contact" placeholder="Email or Phone"><br><br>
-<textarea id="desc" placeholder="Describe scam..." rows="5"></textarea><br><br>
+<input id="name" placeholder="Your Name"><br>
+<input id="contact" placeholder="Email or Phone"><br>
+
+<textarea id="desc" placeholder="Describe scam..." rows="5"></textarea><br>
 
 <button onclick="submitReport()">Submit Report</button>
 
@@ -25,8 +52,12 @@ async function submitReport() {
     const contact = document.getElementById("contact").value.trim();
     const desc = document.getElementById("desc").value.trim();
 
+    const feedback = document.getElementById("feedback");
+
+    // Validation
     if (!name || !contact || !desc) {
-        alert("Fill all fields");
+        feedback.innerText = "⚠ Please fill all fields";
+        feedback.style.color = "orange";
         return;
     }
 
@@ -44,19 +75,22 @@ async function submitReport() {
         const data = await response.json();
 
         if (data.status === "success") {
-            document.getElementById("feedback").innerText = "✅ Saved successfully";
+            feedback.innerText = "✅ Report saved successfully!";
+            feedback.style.color = "green";
 
-            // clear form
+            // Clear fields
             document.getElementById("name").value = "";
             document.getElementById("contact").value = "";
             document.getElementById("desc").value = "";
         } else {
-            document.getElementById("feedback").innerText = "❌ Failed";
+            feedback.innerText = "❌ Failed to save report";
+            feedback.style.color = "red";
         }
 
     } catch (error) {
         console.error(error);
-        document.getElementById("feedback").innerText = "⚠ Connection error";
+        feedback.innerText = "⚠ Server connection error";
+        feedback.style.color = "red";
     }
 }
 </script>

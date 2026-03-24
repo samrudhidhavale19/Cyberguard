@@ -15,11 +15,9 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
 
-    # Drop existing table if it exists with wrong schema
-    cursor.execute('DROP TABLE IF EXISTS reports')
-
+    # ✅ DO NOT DROP TABLE (IMPORTANT FIX)
     cursor.execute('''
-        CREATE TABLE reports (
+        CREATE TABLE IF NOT EXISTS reports (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
             contact TEXT,
@@ -27,7 +25,6 @@ def init_db():
         )
     ''')
 
-    # Ensure check_results table exists
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS check_results (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,7 +57,7 @@ def save_report():
     contact = data.get('contact')
     description = data.get('description')
 
-    print("🔥 RECEIVED:", name, contact, description)   # DEBUG
+    print("🔥 RECEIVED:", name, contact, description)
 
     if not name or not contact or not description:
         return jsonify({"status": "error", "msg": "Missing data"}), 400
@@ -76,7 +73,7 @@ def save_report():
     conn.commit()
     conn.close()
 
-    print("✅ SAVED TO DATABASE")  # DEBUG
+    print("✅ SAVED TO DATABASE")
 
     return jsonify({"status": "success"})
 
@@ -89,7 +86,6 @@ def check_scam():
     if not message:
         return jsonify({"result": "unknown", "confidence": 0, "reasons": []}), 400
 
-    # Simple scam detection logic
     normalized = message.lower()
     score = 0
     reasons = []
