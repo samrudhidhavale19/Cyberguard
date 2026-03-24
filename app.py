@@ -1,58 +1,48 @@
-from flask import Flask, request, jsonify # pyright: ignore[reportMissingImports]
-from flask_cors import CORS # pyright: ignore[reportMissingModuleSource]
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import sqlite3
 
 app = Flask(__name__, static_url_path='', static_folder='.')
 CORS(app)
 
-# ---------------- SQLITE CONNECTION ----------------
-db = sqlite3.connect('cyberguard.db', check_same_thread=False)
-db.row_factory = sqlite3.Row
-cursor = db.cursor()
+# ---------------- DATABASE ----------------
+def get_db():
+    conn = sqlite3.connect('cyberguard.db')
+    conn.row_factory = sqlite3.Row
+    return conn
 
-# Create tables if not exist
-cursor.execute('''CREATE TABLE IF NOT EXISTS reports (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    contact TEXT NOT NULL,
-    description TEXT NOT NULL
-)''')
+def init_db():
+    conn = get_db()
+    cursor = conn.cursor()
 
-cursor.execute('''CREATE TABLE IF NOT EXISTS check_results (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    message TEXT NOT NULL,
-    result TEXT NOT NULL,
-    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-)''')
+    # Drop existing table if it exists with wrong schema
+    cursor.execute('DROP TABLE IF EXISTS reports')
 
-cursor.execute('''CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL
-)''')
+    cursor.execute('''
+        CREATE TABLE reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            contact TEXT,
+            description TEXT
+        )
+    ''')
 
-db.commit()
+    # Ensure check_results table exists
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS check_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            message TEXT,
+            result TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
 
-# ---------------- SCAM MODEL ----------------
-from sklearn.feature_extraction.text import CountVectorizer # pyright: ignore[reportMissingModuleSource]
-from sklearn.naive_bayes import MultinomialNB # pyright: ignore[reportMissingModuleSource]
+    conn.commit()
+    conn.close()
 
-texts = [
-    "you won lottery", "free money now", "urgent click link",
-    "bank password needed", "claim your prize",
-    "hello friend", "let's meet tomorrow", "how are you"
-]
-
-labels = [1,1,1,1,1,0,0,0]
-
-vectorizer = CountVectorizer()
-X = vectorizer.fit_transform(texts)
-
-model = MultinomialNB()
-model.fit(X, labels)
+init_db()
 
 # ---------------- ROUTES ----------------
-
 @app.route('/')
 def home():
     return app.send_static_file('index.html')
@@ -61,106 +51,115 @@ def home():
 def static_files(path):
     return app.send_static_file(path)
 
-# ---------------- CHECK API ----------------
-@app.route('/api/check', methods=['POST'])
-def check():
-    data = request.get_json()
-
-    if not data or 'message' not in data:
-        return jsonify({"error": "Message required"}), 400
-
-    msg = data['message'].strip()
-
-    if msg == "":
-        return jsonify({"error": "Empty message"}), 400
-
-    X_test = vectorizer.transform([msg])
-    pred = model.predict(X_test)[0]
-
-    return jsonify({
-        "result": "scam" if pred == 1 else "safe"
-    })
-
-# ---------------- REPORT API ----------------
+# ---------------- SAVE REPORT ----------------
 @app.route('/api/reports', methods=['POST'])
-def report():
+def save_report():
     data = request.get_json()
 
-    name = data.get('name', '').strip()
-    contact = data.get('contact', '').strip()
-    description = data.get('description', '').strip()
+    name = data.get('name')
+    contact = data.get('contact')
+    description = data.get('description')
+
+    print("🔥 RECEIVED:", name, contact, description)   # DEBUG
 
     if not name or not contact or not description:
-        return jsonify({"error": "All fields required"}), 400
+        return jsonify({"status": "error", "msg": "Missing data"}), 400
 
-    sql = "INSERT INTO reports (name, contact, description) VALUES (?, ?, ?)"
-    values = (name, contact, description)
+    conn = get_db()
+    cursor = conn.cursor()
 
-    cursor.execute(sql, values)
-    db.commit()
+    cursor.execute(
+        "INSERT INTO reports (name, contact, description) VALUES (?, ?, ?)",
+        (name, contact, description)
+    )
 
-    return jsonify({"status": "saved"})
+    conn.commit()
+    conn.close()
 
-@app.route('/api/reports', methods=['GET'])
-def get_reports():
-    cursor.execute("SELECT * FROM reports")
-    data = cursor.fetchall()
-    return jsonify([dict(row) for row in data])
+    print("✅ SAVED TO DATABASE")  # DEBUG
+
+    return jsonify({"status": "success"})
+
+# ---------------- CHECK SCAM ----------------
+@app.route('/api/check', methods=['POST'])
+def check_scam():
+    data = request.get_json()
+    message = data.get('message')
+
+    if not message:
+        return jsonify({"result": "unknown", "confidence": 0, "reasons": []}), 400
+
+    # Simple scam detection logic
+    normalized = message.lower()
+    score = 0
+    reasons = []
+
+    if 'http' in normalized or 'www' in normalized:
+        score += 3
+        reasons.append("Contains suspicious link")
+
+    suspicious_words = ['urgent', 'password', 'otp', 'winner', 'lottery', 'bank', 'account', 'verify']
+    for word in suspicious_words:
+        if word in normalized:
+            score += 2
+            reasons.append(f"Suspicious word: {word}")
+
+    if score >= 5:
+        result = "scam"
+        confidence = min(score * 10, 100)
+    elif score >= 2:
+        result = "suspicious"
+        confidence = score * 10
+    else:
+        result = "safe"
+        confidence = 100 - score * 5
+
+    return jsonify({"result": result, "confidence": confidence, "reasons": reasons})
 
 # ---------------- SAVE CHECK RESULT ----------------
-@app.route('/api/save', methods=['POST'])
-def save_check():
+@app.route('/api/check_results', methods=['POST'])
+def save_check_result():
     data = request.get_json()
 
-    message = data.get('message', '').strip()
-    result = data.get('result', '').strip()
+    message = data.get('message')
+    result = data.get('result')
 
     if not message or not result:
-        return jsonify({"error": "Message and result required"}), 400
+        return jsonify({"status": "error", "msg": "Missing data"}), 400
 
-    sql = "INSERT INTO check_results (message, result) VALUES (?, ?)"
-    values = (message, result)
+    conn = get_db()
+    cursor = conn.cursor()
 
-    cursor.execute(sql, values)
-    db.commit()
+    cursor.execute(
+        "INSERT INTO check_results (message, result) VALUES (?, ?)",
+        (message, result)
+    )
 
-    return jsonify({"status": "saved"})
+    conn.commit()
+    conn.close()
 
-# ---------------- LOGIN SYSTEM ----------------
-@app.route('/api/signup', methods=['POST'])
-def signup():
-    data = request.get_json()
+    return jsonify({"status": "success"})
 
-    username = data.get('username', '').strip()
-    password = data.get('password', '').strip()
+# ---------------- GET REPORTS ----------------
+@app.route('/api/reports', methods=['GET'])
+def get_reports():
+    conn = get_db()
+    cursor = conn.cursor()
 
-    if not username or not password:
-        return jsonify({"error": "Required fields missing"}), 400
+    cursor.execute("SELECT * FROM reports ORDER BY id DESC")
+    rows = cursor.fetchall()
 
-    try:
-        sql = "INSERT INTO users (username, password) VALUES (?,?)"
-        cursor.execute(sql, (username, password))
-        db.commit()
-        return jsonify({"status": "created"})
+    data = []
+    for row in rows:
+        data.append({
+            "id": row["id"],
+            "name": row["name"],
+            "contact": row["contact"],
+            "description": row["description"]
+        })
 
-    except sqlite3.IntegrityError:
-        return jsonify({"status": "user exists"}), 409
-
-@app.route('/api/login', methods=['POST'])
-def login():
-    data = request.get_json()
-
-    username = data.get('username', '').strip()
-    password = data.get('password', '').strip()
-
-    sql = "SELECT * FROM users WHERE username=? AND password=?"
-    cursor.execute(sql, (username, password))
-    user = cursor.fetchone()
-
-    if user:
-        return jsonify({"status": "success"})
-    else:
-        return jsonify({"status": "fail"}), 401
+    conn.close()
+    return jsonify(data)
 
 # ---------------- RUN ----------------
 if __name__ == '__main__':

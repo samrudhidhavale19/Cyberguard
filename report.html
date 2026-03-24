@@ -1,68 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CyberGuard | Report Scam</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+<meta charset="UTF-8">
+<title>Report Scam</title>
+<link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<header>
-     <div class="logo">
-        <i class="fa-solid fa-shield-halved"></i> CYBER<span>GUARD</span>
-    </div>
-    <nav>
-        <a href="index.html">Home</a>
-        <a href="check.html">Check Tool</a>
-        <a href="report.html">Report</a>
-        <a href="tips.html">Tips</a>
-        <a href="about.html">About</a>
-    </nav>
-</header>
+<h2>Report a Scam</h2>
 
-<main class="container" style="padding-top: 40px;">
-    <section class="card" style="max-width: 700px; margin: 0 auto; padding: 30px;">
-        <h1>Report a Scam</h1>
-        <p>Please share details about the suspicious message or tactic you encountered.</p>
+<input id="name" placeholder="Your Name"><br><br>
+<input id="contact" placeholder="Email or Phone"><br><br>
+<textarea id="desc" placeholder="Describe scam..." rows="5"></textarea><br><br>
 
-        <div class="form-group">
-            <label for="name">Your Name</label>
-            <input id="name" placeholder="e.g., Jane Doe" required>
-        </div>
+<button onclick="submitReport()">Submit Report</button>
 
-        <div class="form-group">
-            <label for="contact">Your Contact (email or phone)</label>
-            <input id="contact" placeholder="e.g., jane@example.com" required>
-        </div>
-
-        <div class="form-group">
-            <label for="desc">Details</label>
-            <textarea id="desc" placeholder="Describe the scam message, link, and situation..." rows="6" required></textarea>
-        </div>
-
-        <button class="btn-main" id="submitReport">Submit Report</button>
-
-        <div id="feedback" class="result-box" style="display:none; margin-top:15px;"></div>
-    </section>
-</main>
-
-<footer>
-    <p>&copy; 2026 CyberGuard | Secure Information Platform</p>
-</footer>
+<p id="feedback"></p>
 
 <script>
-const submitBtn = document.getElementById('submitReport');
-const feedbackEl = document.getElementById('feedback');
+async function submitReport() {
 
-submitBtn.addEventListener('click', async () => {
-    const name = document.getElementById('name').value.trim();
-    const contact = document.getElementById('contact').value.trim();
-    const description = document.getElementById('desc').value.trim();
+    const name = document.getElementById("name").value.trim();
+    const contact = document.getElementById("contact").value.trim();
+    const desc = document.getElementById("desc").value.trim();
 
-    if (!name || !contact || !description) {
-        showFeedback('Please fill in every field before submitting.', 'warning');
+    if (!name || !contact || !desc) {
+        alert("Fill all fields");
         return;
     }
 
@@ -70,32 +34,30 @@ submitBtn.addEventListener('click', async () => {
         const response = await fetch('/api/reports', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, contact, description })
+            body: JSON.stringify({
+                name: name,
+                contact: contact,
+                description: desc
+            })
         });
 
-        if (!response.ok) {
-            throw new Error('Server error: ' + response.status);
+        const data = await response.json();
+
+        if (data.status === "success") {
+            document.getElementById("feedback").innerText = "✅ Saved successfully";
+
+            // clear form
+            document.getElementById("name").value = "";
+            document.getElementById("contact").value = "";
+            document.getElementById("desc").value = "";
+        } else {
+            document.getElementById("feedback").innerText = "❌ Failed";
         }
 
-        const data = await response.json();
-        if (data.status === 'saved') {
-            showFeedback('✅ Thank you! Your report has been received.', 'success');
-            document.getElementById('name').value = '';
-            document.getElementById('contact').value = '';
-            document.getElementById('desc').value = '';
-        } else {
-            showFeedback('⚠ Error: unable to send report. Please try again.', 'danger');
-        }
     } catch (error) {
         console.error(error);
-        showFeedback('⚠ Connection error, please check your network and try again.', 'danger');
+        document.getElementById("feedback").innerText = "⚠ Connection error";
     }
-});
-
-function showFeedback(message, status) {
-    feedbackEl.style.display = 'block';
-    feedbackEl.textContent = message;
-    feedbackEl.className = 'result-box result ' + (status === 'success' ? 'safe' : status === 'warning' ? 'warning' : 'scam');
 }
 </script>
 
